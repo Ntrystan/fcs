@@ -61,8 +61,7 @@ def report_to_ncbi_stat():
     url = "https://www.ncbi.nlm.nih.gov/stat?"
     elapsed_time = round(time.time() - start_time)
     # required
-    url_args = {"ncbi_app": "fcs"}
-    url_args["ncbi_op"] = GlobalStat.ncbi_op
+    url_args = {"ncbi_app": "fcs", "ncbi_op": GlobalStat.ncbi_op}
     # not required
     python_version = sys.version.split()[0]
     architecture = platform.platform()
@@ -105,16 +104,16 @@ def find_argument(command, argument):
               position (int)
 
     """
-    arg_pos = command.find(argument + " ")
+    arg_pos = command.find(f"{argument} ")
     # check that we have found it
     if arg_pos == -1:
-        arg_pos = command.find(argument + "=")
-        if arg_pos == -1:
-            return None, None
+        arg_pos = command.find(f"{argument}=")
+    if arg_pos == -1:
+        return None, None
     val = command[(arg_pos + len(argument)) :]
     string_size = len(val)
     a = 0
-    while string_size > a and (val[a] == " " or val[a] == "="):
+    while string_size > a and val[a] in [" ", "="]:
         a += 1
     if a == string_size:
         return None, None
@@ -151,8 +150,11 @@ class RunFCS:
 
     def get_db_build_date(self):
         try:
-            file_list = [f for f in os.listdir(GlobalStat.gx_db_path) if f.endswith(".meta.jsonl")]
-            if file_list:
+            if file_list := [
+                f
+                for f in os.listdir(GlobalStat.gx_db_path)
+                if f.endswith(".meta.jsonl")
+            ]:
                 with open(os.path.join(GlobalStat.gx_db_path, file_list[0])) as f:  # pylint: disable=W1514
                     file_content = json.load(f)
                     GlobalStat.gxdb = file_content["build-date"]
@@ -174,10 +176,13 @@ class RunFCS:
         ]
 
         if hasattr(self.args, "gx_db"):
-            sync_files_args += [self.mount_arg, str(self.args.gx_db) + ":" + str(DEFAULT_CONTAINER_DB)]
+            sync_files_args += [
+                self.mount_arg,
+                f"{str(self.args.gx_db)}:{str(DEFAULT_CONTAINER_DB)}",
+            ]
 
         if hasattr(self.args, "mft_dir"):
-            sync_files_args += [self.mount_arg, str(self.args.mft_dir) + ":" + "/mft-volume/"]
+            sync_files_args += [self.mount_arg, f"{str(self.args.mft_dir)}:/mft-volume/"]
 
         sync_files_args += [
             self.args.docker_image,
@@ -205,19 +210,25 @@ class RunFCS:
 
         # add --env-envelop for both docker and
         if hasattr(self.args, "gx_db"):
-            docker_args += [self.mount_arg, str(self.args.gx_db) + ":" + str(DEFAULT_CONTAINER_DB)]
+            docker_args += [
+                self.mount_arg,
+                f"{str(self.args.gx_db)}:{str(DEFAULT_CONTAINER_DB)}",
+            ]
 
         if hasattr(self.args, "fasta"):
-            docker_args += [self.mount_arg, str(self.args.fasta) + ":" + "/sample-volume/"]
+            docker_args += [self.mount_arg, f"{str(self.args.fasta)}:/sample-volume/"]
 
         if hasattr(self.args, "out_dir"):
-            docker_args += [self.mount_arg, str(self.args.out_dir) + ":" + "/output-volume/"]
+            docker_args += [self.mount_arg, f"{str(self.args.out_dir)}:/output-volume/"]
 
         if hasattr(self.args, "report"):
-            docker_args += [self.mount_arg, str(self.args.report) + ":" + "/report-volume/"]
+            docker_args += [self.mount_arg, f"{str(self.args.report)}:/report-volume/"]
 
         if hasattr(self.args, "contam_fasta_out"):
-            docker_args += [self.mount_arg, str(self.args.contam_fasta_out) + ":" + "/contam-out-volume/"]
+            docker_args += [
+                self.mount_arg,
+                f"{str(self.args.contam_fasta_out)}:/contam-out-volume/",
+            ]
 
         if GlobalStat.mode == "screen":
             docker_args += [
